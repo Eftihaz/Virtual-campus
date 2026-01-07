@@ -6,6 +6,7 @@ const eventSchema = new mongoose.Schema({
   department: { type: String, default: 'general' },
   type: { type: String, default: 'event' },
   date: { type: String, required: true },
+  photo: { type: String, default: '' },
   authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   authorName: { type: String, default: '' },
   interestedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -14,4 +15,7 @@ const eventSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.models.Event || mongoose.model('Event', eventSchema);
+
+
+
 
