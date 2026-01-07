@@ -7,9 +7,15 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header>
+    <header class="glassmorphic-nav">
       <div class="header-top">
-        <h1>Virtual Campus</h1>
+        <div class="logo-section">
+          <div class="brac-logo">🎓</div>
+          <div class="logo-text">
+            <h1>BRAC UNIVERSITY</h1>
+            <p class="tagline">Virtual Campus Portal</p>
+          </div>
+        </div>
         <div class="header-actions">
           <button id="themeToggle" class="theme-toggle" title="Toggle dark mode">🌙</button>
           <a href="/" class="btn btn-secondary">Back to Home</a>
@@ -48,6 +54,7 @@
         </div>
       </div>
     </main>
+    <script src="utils.js"></script>
     <script src="auth.js"></script>
     <script src="theme.js"></script>
     <script>
@@ -60,16 +67,24 @@
           document.getElementById('department').value = user.department || '';
           document.getElementById('studentId').value = user.studentId || '';
         } catch (error) {
-          window.location.href = '/signin.html';
+          toast.error('Please sign in to view profile');
+          setTimeout(() => window.location.href = '/signin.html', 1500);
         }
       }
 
       document.getElementById('profileForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const form = e.target;
         const errorDiv = document.getElementById('profileError');
         const successDiv = document.getElementById('profileSuccess');
         errorDiv.textContent = '';
         successDiv.textContent = '';
+        
+        if (!validateForm(form)) return;
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        showLoading(form);
         
         try {
           const name = document.getElementById('name').value;
@@ -77,8 +92,15 @@
           const studentId = document.getElementById('studentId').value;
           await updateProfile(name, department, studentId);
           successDiv.textContent = 'Profile updated successfully!';
+          toast.success('Profile updated successfully');
+          clearForm(form);
+          loadProfile();
         } catch (error) {
+          hideLoading(form);
           errorDiv.textContent = error.message;
+          toast.error(error.message);
+        } finally {
+          submitBtn.disabled = false;
         }
       });
 
