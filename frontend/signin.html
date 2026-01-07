@@ -3,13 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign In - Virtual Campus</title>
+    <title>Sign In - BRAC University Virtual Campus</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="auth-container">
-      <div class="auth-card">
-        <h1>Sign In</h1>
+      <div class="auth-card glassmorphic-card">
+        <div class="brac-logo-auth">🎓</div>
+        <h1>BRAC University</h1>
+        <p class="auth-subtitle">Sign In to Virtual Campus Portal</p>
         <form id="signInForm">
           <div class="form-group">
             <label for="email">Email</label>
@@ -30,21 +32,34 @@
         <div id="authError" class="error-message"></div>
       </div>
     </div>
+    <script src="utils.js"></script>
     <script src="auth.js"></script>
     <script src="theme.js"></script>
     <script>
       document.getElementById('signInForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const form = e.target;
         const errorDiv = document.getElementById('authError');
         errorDiv.textContent = '';
+        
+        if (!validateForm(form)) return;
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        showLoading(form);
         
         try {
           const email = document.getElementById('email').value;
           const password = document.getElementById('password').value;
           await signIn(email, password);
-          window.location.href = '/';
+          toast.success('Signed in successfully');
+          setTimeout(() => window.location.href = '/', 500);
         } catch (error) {
+          hideLoading(form);
           errorDiv.textContent = error.message;
+          toast.error(error.message);
+        } finally {
+          submitBtn.disabled = false;
         }
       });
     </script>
