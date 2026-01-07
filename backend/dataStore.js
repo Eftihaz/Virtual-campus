@@ -172,7 +172,8 @@ async function getMenu(filters = {}) {
   if (isMongoConfigured) {
     let query = {};
     if (filters.allergy) {
-      query.allergies = { $ne: filters.allergy.toLowerCase() };
+      // Show items that do NOT contain the selected allergy
+      query.allergies = { $nin: [filters.allergy.toLowerCase()] };
     }
     const items = await MenuItem.find(query);
     return items.map(toPlainObject);
@@ -180,6 +181,7 @@ async function getMenu(filters = {}) {
   
   let data = seedData.menu;
   if (filters.allergy) {
+    // Show items that do NOT contain the selected allergy
     data = data.filter((item) => !item.allergies.includes(filters.allergy.toLowerCase()));
   }
   return data;
@@ -191,7 +193,7 @@ async function upsertMenuItem(item) {
       const id = item.id || item._id;
       const updated = await MenuItem.findByIdAndUpdate(
         id,
-        { $set: { name: item.name, price: item.price, available: item.available, allergies: item.allergies } },
+        { $set: { name: item.name, price: item.price, available: item.available, allergies: item.allergies, image: item.image } },
         { new: true, upsert: false }
       );
       return toPlainObject(updated);
@@ -211,6 +213,15 @@ async function upsertMenuItem(item) {
   return newItem;
 }
 
+async function deleteMenuItem(id) {
+  if (isMongoConfigured) {
+    await MenuItem.findByIdAndDelete(id);
+    return;
+  }
+  const idx = seedData.menu.findIndex((m) => m.id === id);
+  if (idx >= 0) seedData.menu.splice(idx, 1);
+}
+
 // News
 async function getNews(filters = {}) {
   if (isMongoConfigured) {
@@ -224,7 +235,23 @@ async function getNews(filters = {}) {
       .sort({ createdAt: -1 });
     return items.map(toPlainObject);
   }
-  return filterBy(seedData.news, filters);
+  // For in-memory mode, ensure likedBy has user objects with names
+  let news = filterBy(seedData.news, filters);
+  // Sort by createdAt descending (latest first)
+  news = news.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return news.map(item => {
+    if (item.likedBy && Array.isArray(item.likedBy)) {
+      item.likedBy = item.likedBy.map(like => {
+        if (typeof like === 'string' || typeof like === 'object' && !like.name) {
+          // Try to find user by id
+          const user = seedData.users.find(u => (u.id || u._id) === (like.id || like._id || like));
+          return user ? { id: user.id, name: user.name, email: user.email, role: user.role } : like;
+        }
+        return like;
+      });
+    }
+    return item;
+  });
 }
 
 async function addNews(item, user = null) {
@@ -304,9 +331,14 @@ async function likeNews(id, user = null) {
   const item = seedData.news.find((n) => n.id === id);
   if (item) {
     if (!item.likedBy) item.likedBy = [];
-    if (user && !item.likedBy.includes(user.id)) {
-      item.likedBy.push(user.id);
+    if (user && !item.likedBy.some(l => (l.id || l._id || l) === user.id)) {
+      // Store user object with name for in-memory mode
+      item.likedBy.push({ id: user.id, name: user.name, email: user.email, role: user.role });
       item.likes = (item.likes || 0) + 1;
+    } else if (user && item.likedBy.some(l => (l.id || l._id || l) === user.id)) {
+      // Unlike - remove user
+      item.likedBy = item.likedBy.filter(l => (l.id || l._id || l) !== user.id);
+      item.likes = Math.max(0, (item.likes || 0) - 1);
     } else if (!user) {
       item.likes = (item.likes || 0) + 1;
     }
@@ -362,7 +394,23 @@ async function getEvents(filters = {}) {
       .sort({ date: 1 });
     return events.map(toPlainObject);
   }
-  return filterBy(seedData.events, filters);
+  // For in-memory mode, ensure interestedBy has user objects with names
+  let events = filterBy(seedData.events, filters);
+  // Sort events by date (ascending - upcoming events first)
+  events = events.sort((a, b) => new Date(a.date) - new Date(b.date));
+  return events.map(item => {
+    if (item.interestedBy && Array.isArray(item.interestedBy)) {
+      item.interestedBy = item.interestedBy.map(interest => {
+        if (typeof interest === 'string' || typeof interest === 'object' && !interest.name) {
+          // Try to find user by id
+          const user = seedData.users.find(u => (u.id || u._id) === (interest.id || interest._id || interest));
+          return user ? { id: user.id, name: user.name, email: user.email, role: user.role } : interest;
+        }
+        return interest;
+      });
+    }
+    return item;
+  });
 }
 
 async function addEvent(event, user = null) {
@@ -441,9 +489,14 @@ async function markInterest(id, user = null) {
   const event = seedData.events.find((e) => e.id === id);
   if (event) {
     if (!event.interestedBy) event.interestedBy = [];
-    if (user && !event.interestedBy.includes(user.id)) {
-      event.interestedBy.push(user.id);
+    if (user && !event.interestedBy.some(i => (i.id || i._id || i) === user.id)) {
+      // Store user object with name for in-memory mode
+      event.interestedBy.push({ id: user.id, name: user.name, email: user.email, role: user.role });
       event.interested = (event.interested || 0) + 1;
+    } else if (user && event.interestedBy.some(i => (i.id || i._id || i) === user.id)) {
+      // Remove interest
+      event.interestedBy = event.interestedBy.filter(i => (i.id || i._id || i) !== user.id);
+      event.interested = Math.max(0, (event.interested || 0) - 1);
     } else if (!user) {
       event.interested = (event.interested || 0) + 1;
     }
@@ -472,6 +525,28 @@ async function getRooms() {
   return seedData.rooms;
 }
 
+async function addRoom(roomData) {
+  if (isMongoConfigured) {
+    const room = new Room(roomData);
+    await room.save();
+    return toPlainObject(room);
+  }
+  const newRoom = { ...roomData, id: uuid() };
+  seedData.rooms.push(newRoom);
+  return newRoom;
+}
+
+async function updateRoom(id, updates) {
+  if (isMongoConfigured) {
+    const room = await Room.findByIdAndUpdate(id, { $set: updates }, { new: true });
+    return toPlainObject(room);
+  }
+  const room = seedData.rooms.find((r) => r.id === id);
+  if (!room) return null;
+  Object.assign(room, updates);
+  return room;
+}
+
 async function updateRoomStatus(id, status) {
   if (isMongoConfigured) {
     const room = await Room.findByIdAndUpdate(id, { $set: { status } }, { new: true });
@@ -481,6 +556,15 @@ async function updateRoomStatus(id, status) {
   if (!room) return null;
   room.status = status;
   return room;
+}
+
+async function deleteRoom(id) {
+  if (isMongoConfigured) {
+    await Room.findByIdAndDelete(id);
+    return;
+  }
+  const idx = seedData.rooms.findIndex((r) => r.id === id);
+  if (idx >= 0) seedData.rooms.splice(idx, 1);
 }
 
 async function toggleFavoriteRoom(id, userId) {
@@ -512,10 +596,33 @@ async function toggleFavoriteRoom(id, userId) {
 // Thesis
 async function getThesisSlots() {
   if (isMongoConfigured) {
-    const slots = await ThesisSlot.find();
+    const slots = await ThesisSlot.find()
+      .populate('requests.userId', 'name email role');
     return slots.map(toPlainObject);
   }
   return seedData.thesisSlots;
+}
+
+async function addThesisSlot(slotData) {
+  if (isMongoConfigured) {
+    const slot = new ThesisSlot(slotData);
+    await slot.save();
+    return toPlainObject(slot);
+  }
+  const newSlot = { ...slotData, id: uuid(), requests: [] };
+  seedData.thesisSlots.push(newSlot);
+  return newSlot;
+}
+
+async function updateThesisSlot(id, updates) {
+  if (isMongoConfigured) {
+    const slot = await ThesisSlot.findByIdAndUpdate(id, { $set: updates }, { new: true });
+    return toPlainObject(slot);
+  }
+  const slot = seedData.thesisSlots.find((s) => s.id === id);
+  if (!slot) return null;
+  Object.assign(slot, updates);
+  return slot;
 }
 
 async function toggleSlot(id, open) {
@@ -532,6 +639,15 @@ async function toggleSlot(id, open) {
   slot.open = open;
   slot.status = open ? 'open' : 'closed';
   return slot;
+}
+
+async function deleteThesisSlot(id) {
+  if (isMongoConfigured) {
+    await ThesisSlot.findByIdAndDelete(id);
+    return;
+  }
+  const idx = seedData.thesisSlots.findIndex((s) => s.id === id);
+  if (idx >= 0) seedData.thesisSlots.splice(idx, 1);
 }
 
 async function requestSupervision(slotId, payload) {
@@ -568,9 +684,23 @@ async function updateThesisStatus(slotId, requestId, status) {
   return req;
 }
 
+async function deleteThesisRequest(slotId, requestId) {
+  if (isMongoConfigured) {
+    const slot = await ThesisSlot.findById(slotId);
+    if (!slot) return null;
+    slot.requests.id(requestId).remove();
+    await slot.save();
+    return;
+  }
+  const slot = seedData.thesisSlots.find((s) => s.id === slotId);
+  if (!slot) return null;
+  slot.requests = slot.requests.filter((r) => r.id !== requestId);
+}
+
 module.exports = {
   getMenu,
   upsertMenuItem,
+  deleteMenuItem,
   getNews,
   addNews,
   updateNews,
@@ -584,12 +714,19 @@ module.exports = {
   markInterest,
   shareEvent,
   getRooms,
+  addRoom,
+  updateRoom,
   updateRoomStatus,
+  deleteRoom,
   toggleFavoriteRoom,
   getThesisSlots,
+  addThesisSlot,
+  updateThesisSlot,
   toggleSlot,
+  deleteThesisSlot,
   requestSupervision,
   updateThesisStatus,
+  deleteThesisRequest,
   seedMongoDB,
   findUserByEmail,
   findUserById,
