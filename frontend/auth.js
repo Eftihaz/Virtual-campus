@@ -157,3 +157,5 @@ async function verifyToken() {
 
 // Initialize auth on load
 loadAuth();
+
+
