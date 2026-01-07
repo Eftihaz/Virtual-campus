@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BRAC University - Virtual Campus Portal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="glassmorphic-nav">
+      <div class="header-top">
+        <div class="logo-section">
+          <div class="brac-logo">🎓</div>
+          <div class="logo-text">
+            <h1>BRAC UNIVERSITY</h1>
+            <p class="tagline">Virtual Campus Portal</p>
+          </div>
+        </div>
+        <nav class="main-nav">
+          <a href="#cafeteria" class="nav-tab">Cafeteria</a>
+          <a href="#news" class="nav-tab">News</a>
+          <a href="#events" class="nav-tab">Events</a>
+          <a href="#rooms" class="nav-tab">Rooms</a>
+          <a href="#thesis" class="nav-tab">Thesis</a>
+        </nav>
+        <div class="header-actions">
+          <button id="themeToggle" class="theme-toggle" title="Toggle dark mode">🌙</button>
+          <div id="userMenu" class="user-menu">
+            <div class="profile-header-row">
+              <span id="userName" class="user-name">Guest</span>
+              <a href="/profile.html" class="profile-link">View Profile</a>
+              <button id="signOutBtn" class="sign-out-btn">Sign Out</button>
+            </div>
+            <span id="userRole" class="user-role"></span>
+          </div>
+          <div id="authButtons" class="auth-buttons">
+            <a href="/signin.html" class="btn btn-primary">Sign In</a>
+            <a href="/signup.html" class="btn btn-secondary">Sign Up</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="cafeteria" class="card">
+        <h2>Cafeteria Menu</h2>
+        <div class="controls">
+          <label>
+            Allergy filter:
+            <select id="allergyFilter">
+              <option value="">All Items</option>
+              <option value="gluten">Gluten-Free</option>
+              <option value="dairy">Dairy-Free</option>
+              <option value="peanut">Nut-Free</option>
+              <option value="soy">Soy-Free</option>
+              <option value="shellfish">Shellfish-Free</option>
+              <option value="egg">Egg-Free</option>
+            </select>
+          </label>
+          <button id="loadMenu">Load Menu</button>
+          <button id="viewAnalytics" class="btn btn-secondary" style="display: none;" title="Admin only: View sales analytics">📊 Analytics</button>
+        </div>
+        <ul id="menuList" class="list"></ul>
+        <div id="analyticsPanel" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9;">
+          <h3>Cafeteria Sales Analytics</h3>
+          <p><small>Admin only - Food sales and item performance data</small></p>
+          <ul id="analyticsList" class="list"></ul>
+        </div>
+      </section>
+
+      <section id="news" class="card">
+        <h2>Campus News</h2>
+        <div class="controls">
+          <label>
+            Department:
+            <select id="newsFilter">
+              <option value="">All Departments</option>
+              <option value="general">General</option>
+              <option value="cse">Computer Science</option>
+              <option value="business">Business</option>
+              <option value="engineering">Engineering</option>
+              <option value="health">Health Sciences</option>
+            </select>
+          </label>
+          <label>
+            Category:
+            <select id="newsCategoryFilter">
+              <option value="">All Categories</option>
+              <option value="announcement">Announcement</option>
+              <option value="update">Update</option>
+              <option value="event">Event</option>
+              <option value="alert">Alert</option>
+            </select>
+          </label>
+          <button id="loadNews">Latest News</button>
+        </div>
+        <ul id="newsList" class="list"></ul>
+      </section>
+
+      <section id="events" class="card">
+        <h2>Events</h2>
+        <div class="controls">
+          <label>
+            Department:
+            <select id="eventsFilter">
+              <option value="">All Departments</option>
+              <option value="general">General</option>
+              <option value="cse">Computer Science</option>
+              <option value="business">Business</option>
+              <option value="engineering">Engineering</option>
+              <option value="health">Health Sciences</option>
+            </select>
+          </label>
+          <label>
+            Type:
+            <select id="eventsTypeFilter">
+              <option value="">All Types</option>
+              <option value="seminar">Seminar</option>
+              <option value="workshop">Workshop</option>
+              <option value="conference">Conference</option>
+              <option value="social">Social</option>
+              <option value="sports">Sports</option>
+            </select>
+          </label>
+          <button id="loadEvents">Upcoming Events</button>
+        </div>
+        <ul id="eventsList" class="list"></ul>
+      </section>
+
+      <section id="rooms" class="card">
+        <h2>Rooms & Labs</h2>
+        <div class="controls">
+          <label>
+            Status:
+            <select id="roomsStatusFilter">
+              <option value="">All Status</option>
+              <option value="Available">Available</option>
+              <option value="Occupied">Occupied</option>
+            </select>
+          </label>
+          <button id="loadRooms">Refresh</button>
+        </div>
+        <ul id="roomsList" class="list"></ul>
+      </section>
+
+      <section id="thesis" class="card">
+        <h2>Thesis Supervision</h2>
+        <div class="controls">
+          <button id="loadThesis">Open Slots</button>
+        </div>
+        <ul id="thesisList" class="list"></ul>
+      </section>
+    </main>
+
+    <footer class="glassmorphic-footer">
+      <p>© 2026 BRAC University. All rights reserved.</p>
+    </footer>
+
+    <script src="utils.js"></script>
+    <script src="auth.js"></script>
+    <script src="theme.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
